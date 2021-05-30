@@ -1,0 +1,9 @@
+name: example-decision-tree
+
+conda_env: conda.yaml
+
+entry_points:
+  main:
+    parameters:
+      tree_depth: {type: int, default: 2}
+    command: "python main.py {tree_depth}"

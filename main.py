@@ -1,9 +1,14 @@
 import sys
+from urllib.parse import urlparse
+from numpy import mod
 
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import precision_score, recall_score, accuracy_score
+
+import mlflow
+import mlflow.sklearn
 
 DEFAULT_MAX_DEPTH = 2
 
@@ -33,4 +38,27 @@ if __name__ == '__main__':
 
     max_depth = int(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_MAX_DEPTH
 
-    model = DecisionTreeModel(max_depth=max_depth)
+    with mlflow.start_run():
+
+        model = DecisionTreeModel(max_depth=max_depth)
+        model.load_data()
+        model.train()
+        model.evaluate()
+
+        mlflow.log_param("tree_depth", max_depth)
+        mlflow.log_metric("precision", model.precision)
+        mlflow.log_metric("recall", model.recall)
+        mlflow.log_metric("accuracy", model.accuracy)
+
+        tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
+
+        # Model registry does not work with file store
+        if tracking_url_type_store != "file":
+
+            # Register the model
+            # There are other ways to use the Model Registry, which depends on the use case,
+            # please refer to the doc for more information:
+            # https://mlflow.org/docs/latest/model-registry.html#api-workflow
+            mlflow.sklearn.log_model(model.tree, "model", registered_model_name="MyDecisionTreeModel")
+        else:
+            mlflow.sklearn.log_model(model.tree, "model")
