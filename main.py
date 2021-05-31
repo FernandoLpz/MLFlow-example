@@ -1,6 +1,6 @@
 import sys
+import numpy as np
 from urllib.parse import urlparse
-from numpy import mod
 
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.datasets import load_breast_cancer
@@ -9,6 +9,7 @@ from sklearn.metrics import precision_score, recall_score, accuracy_score
 
 import mlflow
 import mlflow.sklearn
+from mlflow.models.signature import infer_signature
 
 DEFAULT_MAX_DEPTH = 2
 
@@ -28,10 +29,10 @@ class DecisionTreeModel:
         self.tree.fit(self.x_train, self.y_train)
 
     def evaluate(self):
-        y_pred = self.tree.predict(self.x_test)
-        self.precision = precision_score(self.y_test, y_pred)
-        self.recall = recall_score(self.y_test, y_pred)
-        self.accuracy = accuracy_score(self.y_test, y_pred)
+        self.y_pred = self.tree.predict(self.x_test)
+        self.precision = precision_score(self.y_test, self.y_pred)
+        self.recall = recall_score(self.y_test, self.y_pred)
+        self.accuracy = accuracy_score(self.y_test, self.y_pred)
 
 
 if __name__ == '__main__':
@@ -50,6 +51,10 @@ if __name__ == '__main__':
         mlflow.log_metric("recall", model.recall)
         mlflow.log_metric("accuracy", model.accuracy)
 
+        input_example = np.random.rand(1,30)
+
+        signature = infer_signature(model.x_test, model.x_test)
+
         tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
 
         # Model registry does not work with file store
@@ -59,6 +64,6 @@ if __name__ == '__main__':
             # There are other ways to use the Model Registry, which depends on the use case,
             # please refer to the doc for more information:
             # https://mlflow.org/docs/latest/model-registry.html#api-workflow
-            mlflow.sklearn.log_model(model.tree, "model", registered_model_name="MyDecisionTreeModel")
+            mlflow.sklearn.log_model(model.tree, "MyModel2", registered_model_name="MyDecisionTreeModel", signature=signature, input_example=input_example)
         else:
-            mlflow.sklearn.log_model(model.tree, "model")
+            mlflow.sklearn.log_model(model.tree, "MyModel2", signature=signature, input_example=input_example)
