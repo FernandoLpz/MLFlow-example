@@ -1,3 +1,4 @@
+import os
 import sys
 import numpy as np
 from urllib.parse import urlparse
@@ -39,6 +40,14 @@ if __name__ == '__main__':
 
     max_depth = int(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_MAX_DEPTH
 
+    remote_server_uri = "http://localhost"
+    mlflow.set_tracking_uri(remote_server_uri)
+
+    os.environ['MLFLOW_TRACKING_USERNAME'] = 'mlflow-user'
+    os.environ['MLFLOW_TRACKING_PASSWORD']='f3rn4nd0.'
+
+    mlflow.set_experiment("Experiment-Server")
+
     with mlflow.start_run():
 
         model = DecisionTreeModel(max_depth=max_depth)
@@ -61,9 +70,24 @@ if __name__ == '__main__':
         if tracking_url_type_store != "file":
 
             # Register the model
-            # There are other ways to use the Model Registry, which depends on the use case,
-            # please refer to the doc for more information:
-            # https://mlflow.org/docs/latest/model-registry.html#api-workflow
-            mlflow.sklearn.log_model(model.tree, "MyModel2", registered_model_name="MyDecisionTreeModel", signature=signature, input_example=input_example)
+            mlflow.sklearn.log_model(model.tree, "MyModel-dt", registered_model_name="Decision Tree", signature=signature, input_example=input_example)
         else:
-            mlflow.sklearn.log_model(model.tree, "MyModel2", signature=signature, input_example=input_example)
+            mlflow.sklearn.log_model(model.tree, "MyModel-dt", signature=signature, input_example=input_example)
+
+
+
+
+with mlflow.start_run():
+
+    model = DecisionTreeModel(max_depth=max_depth)
+    model.load_data()
+    model.train()
+    model.evaluate()
+
+    mlflow.log_param("tree_depth", max_depth)
+    mlflow.log_metric("precision", model.precision)
+    mlflow.log_metric("recall", model.recall)
+    mlflow.log_metric("accuracy", model.accuracy)
+
+    # Register the model
+    mlflow.sklearn.log_model(model.tree, "MyModel-dt", registered_model_name="Decision Tree")
